@@ -1,0 +1,86 @@
+# Load required packages
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(readr)
+library(maps)
+library(dplyr)
+
+
+# Read in data files
+data2 <- read.csv("data2.csv")
+data3 <- read.csv("data3.csv")
+
+# Combine data
+combined_data <- left_join(data2, data3, by = c("country", "year"))
+print(combined_data)
+print(combined_data$GDP.per.capita)
+
+
+# Create world map chart
+world <- map_data("world")
+ggplot() +
+  geom_map(data = combined_data, map = world, aes(fill = GDP.per.capita, map_id = country), color = "black", size = 0.1) +
+  expand_limits(x = world$long, y = world$lat) +
+  labs(title = "World Map of GDP", fill = "GDP.per.capita")
+
+world <- map_data("world")
+ggplot() +
+  geom_map(data = combined_data, map = world, aes(fill = obs_value, map_id = country), color = "green", size = 0.1) +
+  expand_limits(x = world$long, y = world$lat) +
+  labs(title = "World Map of obs_value", fill = "obs_value")
+
+# Define South American countries
+south_america <- c("Argentina", "Bolivia", "Brazil", "Chile", "Colombia", "Ecuador", "Guyana", "Paraguay", "Peru", "Suriname", "Venezuela")
+
+# Filter data for South American countries
+sa_data <- combined_data %>% filter(country %in% south_america)
+
+# Create scatterplot with country colors
+ggplot(sa_data, aes(x = GDP.per.capita, y = obs_value, fill = country)) +
+  geom_point(shape = 21, size = 5) +
+  scale_fill_manual(values = c(
+    "Argentina" = "red",
+    "Bolivia" = "blue",
+    "Brazil" = "green",
+    "Chile" = "orange",
+    "Colombia" = "purple",
+    "Ecuador" = "brown",
+    "Guyana" = "pink",
+    "Paraguay" = "gray",
+    "Peru" = "black",
+    "Suriname" = "violet",
+    "Venezuela" = "cyan"
+  )) +
+  labs(title = "GDP.per.capita vs obs_value in South America", x = "GDP.per.capita", y = "obs_value")
+
+# Create bar chart for South American countries
+ggplot(sa_data, aes(x = country, y = GDP.per.capita)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  labs(title = "GDP by Country in South America", x = "country", y = "GDP.per.capita")
+
+# Create cleaned data for South American countries
+sa_data_clean <- sa_data %>%
+  gather(key = "indicator", value = "obs_value", -country, -year)
+
+# Filter the data for GDP.per.capita and obs_value indicators
+sa_data_filtered <- sa_data_clean %>%
+  filter(indicator %in% c("GDP.per.capita", "obs_value"))
+
+# Create time-series chart for South American countries
+ggplot(sa_data_filtered, aes(x = year, y = obs_value, group = country, color = country)) +
+  geom_line(size = 1.2) + # Increase line thickness for better visibility
+  scale_color_brewer(type = "qual", palette = "Set2") + # Use a color palette with higher contrast
+  facet_grid(rows = vars(indicator), cols = vars(country), scales = "free_y",
+             switch = "y", space = "free") + # Add facets for each indicator and country
+  labs(title = "Trend in Indicators over Time in South America", x = "", y = "") +
+  theme_minimal() + # Use a minimal theme
+  theme(legend.position = "bottom", legend.direction = "horizontal",
+        strip.background = element_blank(), # Remove background color from facet labels
+        panel.grid.major.y = element_line(color = "gray90"), # Add horizontal grid lines
+        panel.spacing = unit(0.5, "lines"),
+        axis.text.x = element_blank(), # Remove x-axis tick labels
+        axis.ticks.x = element_blank(), # Remove x-axis tick marks
+        axis.title.x = element_text(margin = margin(t = 20))) # Add x-axis title with margin
+
